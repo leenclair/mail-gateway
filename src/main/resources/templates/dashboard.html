@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar('dashboard')}"></nav>
+
+<div class="container">
+    <div th:replace="~{fragments/layout :: alerts}"></div>
+
+    <!-- 서버 상태 카드 -->
+    <div class="card">
+        <div class="card-header">
+            <span class="card-title">SMTP 서버 상태</span>
+            <span class="badge badge-success" th:if="${status.running()}">Running</span>
+            <span class="badge badge-danger" th:unless="${status.running()}">Stopped</span>
+        </div>
+        <div class="info-grid">
+            <div class="info-item">
+                <label>SMTP Host</label>
+                <span class="code-block" th:text="${status.smtpHost()}">0.0.0.0</span>
+            </div>
+            <div class="info-item">
+                <label>SMTP Port</label>
+                <span class="code-block" th:text="${status.smtpPort()}">3025</span>
+            </div>
+            <div class="info-item">
+                <label>수신 메일 수</label>
+                <span th:text="${status.receivedMailCount()} + '건'">0건</span>
+            </div>
+            <div class="info-item">
+                <label>인증 설정</label>
+                <form id="authForm" method="post" action="/settings/auth"
+                      style="display: flex; align-items: center; gap: 0.75rem;">
+                    <input type="hidden" name="authDisabled" id="authDisabledField"
+                           th:value="${status.authDisabled()}">
+                    <label class="toggle">
+                        <input type="checkbox"
+                               th:checked="${status.authDisabled()}"
+                               onchange="document.getElementById('authDisabledField').value = this.checked; document.getElementById('authForm').submit();">
+                        <span class="toggle-slider"></span>
+                    </label>
+                    <span th:text="${status.authDisabled()} ? '인증 OFF (ID/PW 불필요)' : '인증 ON'"
+                          style="font-size: 0.85rem;">인증 OFF</span>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- 연동 정보 카드 -->
+    <div class="card">
+        <div class="card-header">
+            <span class="card-title">외부 시스템 연동 정보</span>
+        </div>
+        <div class="info-grid">
+            <div class="info-item">
+                <label>SMTP 서버 주소</label>
+                <span class="code-block" th:text="${status.smtpHost()}">0.0.0.0</span>
+            </div>
+            <div class="info-item">
+                <label>포트</label>
+                <span class="code-block" th:text="${status.smtpPort()}">3025</span>
+            </div>
+            <div class="info-item">
+                <label>인증 (ID/PW)</label>
+                <span class="code-block" th:text="${status.authDisabled()} ? '사용 안 함' : '사용'">사용 안 함</span>
+            </div>
+            <div class="info-item">
+                <label>암호화 (SSL/TLS)</label>
+                <span class="code-block">사용 안 함</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 수신 메일 목록 -->
+    <div class="card">
+        <div class="card-header">
+            <span class="card-title">수신된 메일 (<span th:text="${#lists.size(mails)}">0</span>건)</span>
+            <div style="display: flex; gap: 0.5rem;">
+                <a href="/" class="btn btn-outline btn-sm">&#8635; 새로고침</a>
+                <form method="post" action="/mails/purge" style="display: inline;"
+                      onsubmit="return confirm('수신된 메일을 모두 삭제하시겠습니까?')">
+                    <button type="submit" class="btn btn-danger btn-sm"
+                            th:disabled="${#lists.isEmpty(mails)}">전체 삭제</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- 메일이 있을 때 -->
+        <div th:if="${!#lists.isEmpty(mails)}">
+            <table class="mail-table">
+                <thead>
+                <tr>
+                    <th style="width:40px">#</th>
+                    <th style="width:180px">발신자</th>
+                    <th style="width:180px">수신자</th>
+                    <th>제목</th>
+                    <th style="width:150px">수신 시간</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="mail : ${mails}"
+                    th:onclick="'window.location.href=\'/mails/' + ${mail.index()} + '\''">
+                    <td th:text="${mail.index() + 1}">1</td>
+                    <td class="mail-from" th:text="${mail.from()}">sender@test.com</td>
+                    <td class="mail-from" th:text="${#strings.listJoin(mail.to(), ', ')}">receiver@test.com</td>
+                    <td>
+                        <div class="mail-subject" th:text="${mail.subject()}">제목</div>
+                        <div class="mail-body-preview" th:text="${mail.body()}">본문 미리보기...</div>
+                    </td>
+                    <td style="font-size:0.8rem; color: var(--text-secondary);"
+                        th:text="${#temporals.format(mail.receivedDate(), 'yyyy-MM-dd HH:mm:ss')}">
+                        2025-01-01 12:00:00
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- 메일이 없을 때 -->
+        <div th:if="${#lists.isEmpty(mails)}" class="empty-state">
+            <div class="empty-state-icon">&#128236;</div>
+            <p>수신된 메일이 없습니다.</p>
+            <p style="font-size: 0.85rem; margin-top: 0.5rem;">
+                외부 시스템에서 SMTP로 메일을 보내거나, <a href="/send">테스트 메일 발송</a>을 해보세요.
+            </p>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar('send')}"></nav>
+
+<div class="container">
+    <div th:replace="~{fragments/layout :: alerts}"></div>
+
+    <div style="display: grid; grid-template-columns: 1fr 340px; gap: 1rem;">
+
+        <!-- 메일 발송 폼 -->
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title">테스트 메일 발송</span>
+            </div>
+            <form method="post" action="/send">
+                <div class="form-group">
+                    <label for="from">발신자 (From) *</label>
+                    <input type="email" id="from" name="from" class="form-control"
+                           placeholder="sender@example.com" required>
+                </div>
+                <div class="form-group">
+                    <label for="to">수신자 (To) *</label>
+                    <input type="email" id="to" name="to" class="form-control"
+                           placeholder="receiver@example.com" required>
+                </div>
+                <div class="form-group">
+                    <label for="subject">제목 *</label>
+                    <input type="text" id="subject" name="subject" class="form-control"
+                           placeholder="테스트 메일 제목" required>
+                </div>
+                <div class="form-group">
+                    <label for="body">본문</label>
+                    <textarea id="body" name="body" class="form-control"
+                              placeholder="메일 본문을 입력하세요..."></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary">&#9993; 메일 발송</button>
+            </form>
+        </div>
+
+        <!-- 사이드: 현재 서버 설정 정보 -->
+        <div>
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">현재 SMTP 설정</span>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                    <div class="info-item">
+                        <label>서버 주소</label>
+                        <span class="code-block" th:text="${status.smtpHost()} + ':' + ${status.smtpPort()}">
+                            0.0.0.0:3025
+                        </span>
+                    </div>
+                    <div class="info-item">
+                        <label>인증</label>
+                        <span th:text="${status.authDisabled()} ? '비활성화 (ID/PW 불필요)' : '활성화'">
+                            비활성화
+                        </span>
+                    </div>
+                    <div class="info-item">
+                        <label>암호화</label>
+                        <span>사용 안 함</span>
+                    </div>
+                    <div class="info-item">
+                        <label>수신 메일 수</label>
+                        <span th:text="${status.receivedMailCount()} + '건'">0건</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">안내</span>
+                </div>
+                <p style="font-size: 0.85rem; color: var(--text-secondary); line-height: 1.8;">
+                    이 폼은 자체 SMTP 서버로 메일을 발송합니다.
+                    실제로 외부에 메일이 전달되지는 않으며,
+                    발송된 메일은 <a href="/">대시보드</a>에서 확인할 수 있습니다.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>

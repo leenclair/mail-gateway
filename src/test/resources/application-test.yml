@@ -1,0 +1,26 @@
+server:
+  port: 0  # 랜덤 포트 사용
+
+greenmail:
+  smtp:
+    host: 127.0.0.1
+    port: 13025  # 테스트 전용 포트 (메인 3025와 충돌 방지)
+  auth:
+    disabled: true
+  verbose: false
+
+spring:
+  mail:
+    host: localhost
+    port: ${greenmail.smtp.port}
+    properties:
+      mail:
+        smtp:
+          auth: false
+          starttls:
+            enable: false
+
+logging:
+  level:
+    com.icegreen.greenmail: WARN
+    com.example.smtptestserver: DEBUG
