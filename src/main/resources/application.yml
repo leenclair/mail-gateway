@@ -1,0 +1,16 @@
+server:
+  port: 8025
+
+# SMTP 메일 발송은 사용자 입력값 기반으로 동적 생성하므로
+# spring.mail.* 설정은 사용하지 않습니다.
+
+# 메일 발송 타임아웃 기본값 (ms)
+smtp-test:
+  timeout:
+    connection: 5000
+    read: 5000
+    write: 5000
+
+logging:
+  level:
+    com.example.smtptestserver: DEBUG

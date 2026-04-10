@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar}"></nav>
+
+<div class="container">
+
+    <!-- 발송 결과 표시 -->
+    <div th:if="${result}" th:with="isSuccess=${result.success}">
+        <!-- 성공 -->
+        <div th:if="${isSuccess}" class="alert alert-success">
+            <div class="alert-title">&#10004; 메일 발송 성공</div>
+            <span th:text="${result.message}">성공</span>
+            <div class="alert-meta"
+                 th:text="'소요 시간: ' + ${result.elapsedMs} + 'ms'">소요 시간: 0ms</div>
+        </div>
+        <!-- 실패 -->
+        <div th:unless="${isSuccess}" class="alert alert-danger">
+            <div class="alert-title">&#10008; 메일 발송 실패</div>
+            <span th:text="${result.message}">실패 원인</span>
+            <div class="alert-meta"
+                 th:text="'소요 시간: ' + ${result.elapsedMs} + 'ms'">소요 시간: 0ms</div>
+            <div th:if="${result.detail}" class="alert-detail"
+                 th:text="${result.detail}">상세 에러</div>
+        </div>
+    </div>
+
+    <form method="post" action="/send" th:object="${request}" id="smtpForm">
+
+        <!-- SMTP 서버 설정 -->
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title">&#9881; SMTP 서버 설정</span>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="host">SMTP 서버 주소</label>
+                    <input type="text" id="host" th:field="*{host}" class="form-control"
+                           th:classappend="${#fields.hasErrors('host')} ? 'is-invalid'"
+                           placeholder="smtp.example.com">
+                    <div th:if="${#fields.hasErrors('host')}" class="invalid-feedback"
+                         th:errors="*{host}">에러</div>
+                </div>
+                <div class="form-group">
+                    <label for="port">포트</label>
+                    <input type="number" id="port" th:field="*{port}" class="form-control"
+                           th:classappend="${#fields.hasErrors('port')} ? 'is-invalid'"
+                           placeholder="25" min="1" max="65535">
+                    <div th:if="${#fields.hasErrors('port')}" class="invalid-feedback"
+                         th:errors="*{port}">에러</div>
+                    <div class="hint">25(평문), 465(SSL), 587(TLS)</div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>암호화 방식</label>
+                <div class="radio-group">
+                    <th:block th:each="enc : ${encryptionTypes}">
+                        <div class="radio-option">
+                            <input type="radio" th:field="*{encryption}" th:value="${enc.name()}"
+                                   th:id="'enc_' + ${enc.name()}">
+                            <label class="radio-label" th:for="'enc_' + ${enc.name()}"
+                                   th:text="${enc.label} + ' (' + ${enc.description} + ')'">
+                                NONE
+                            </label>
+                        </div>
+                    </th:block>
+                </div>
+                <div th:if="${#fields.hasErrors('encryption')}" class="invalid-feedback"
+                     th:errors="*{encryption}">에러</div>
+            </div>
+        </div>
+
+        <!-- 인증 설정 -->
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title">&#128274; 인증 설정</span>
+            </div>
+
+            <div class="toggle-wrapper">
+                <label class="toggle">
+                    <input type="hidden" name="_authEnabled" value="on">
+                    <input type="checkbox" name="authEnabled" id="authToggle"
+                           th:checked="${request.authEnabled}" value="true"
+                           onchange="toggleAuthFields()">
+                    <span class="toggle-slider"></span>
+                </label>
+                <span class="toggle-text" id="authToggleText">
+                    인증 사용 안 함 (ID/PW 불필요)
+                </span>
+            </div>
+
+            <div class="auth-fields" id="authFields">
+                <div class="form-row">
+                    <div class="form-group" style="margin-bottom:0.5rem">
+                        <label for="username">사용자명 (Username)</label>
+                        <input type="text" id="username" th:field="*{username}" class="form-control"
+                               th:classappend="${#fields.hasErrors('username')} ? 'is-invalid'"
+                               placeholder="user@example.com" autocomplete="off">
+                        <div th:if="${#fields.hasErrors('username')}" class="invalid-feedback"
+                             th:errors="*{username}">에러</div>
+                    </div>
+                    <div class="form-group" style="margin-bottom:0.5rem">
+                        <label for="password">비밀번호 (Password)</label>
+                        <input type="password" id="password" th:field="*{password}" class="form-control"
+                               th:classappend="${#fields.hasErrors('password')} ? 'is-invalid'"
+                               placeholder="••••••••" autocomplete="off">
+                        <div th:if="${#fields.hasErrors('password')}" class="invalid-feedback"
+                             th:errors="*{password}">에러</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 메일 내용 -->
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title">&#9993; 메일 내용</span>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="fromEmail">보내는 사람</label>
+                    <input type="email" id="fromEmail" th:field="*{fromEmail}" class="form-control"
+                           th:classappend="${#fields.hasErrors('fromEmail')} ? 'is-invalid'"
+                           placeholder="sender@example.com">
+                    <div th:if="${#fields.hasErrors('fromEmail')}" class="invalid-feedback"
+                         th:errors="*{fromEmail}">에러</div>
+                </div>
+                <div class="form-group">
+                    <label for="toEmail">받는 사람</label>
+                    <input type="email" id="toEmail" th:field="*{toEmail}" class="form-control"
+                           th:classappend="${#fields.hasErrors('toEmail')} ? 'is-invalid'"
+                           placeholder="receiver@example.com">
+                    <div th:if="${#fields.hasErrors('toEmail')}" class="invalid-feedback"
+                         th:errors="*{toEmail}">에러</div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="subject">제목</label>
+                <input type="text" id="subject" th:field="*{subject}" class="form-control"
+                       th:classappend="${#fields.hasErrors('subject')} ? 'is-invalid'"
+                       placeholder="테스트 메일 제목">
+                <div th:if="${#fields.hasErrors('subject')}" class="invalid-feedback"
+                     th:errors="*{subject}">에러</div>
+            </div>
+
+            <div class="form-group">
+                <label for="body">본문</label>
+                <textarea id="body" th:field="*{body}" class="form-control"
+                          placeholder="메일 본문을 입력하세요..."></textarea>
+            </div>
+        </div>
+
+        <!-- 발송 버튼 -->
+        <button type="submit" class="btn btn-primary" id="submitBtn">
+            &#128640; 테스트 메일 발송
+        </button>
+    </form>
+</div>
+
+<script>
+    function toggleAuthFields() {
+        const toggle = document.getElementById('authToggle');
+        const fields = document.getElementById('authFields');
+        const text = document.getElementById('authToggleText');
+
+        if (toggle.checked) {
+            fields.classList.remove('disabled');
+            text.textContent = '인증 사용 (ID/PW 입력)';
+        } else {
+            fields.classList.add('disabled');
+            text.textContent = '인증 사용 안 함 (ID/PW 불필요)';
+        }
+    }
+
+    // 암호화 방식 선택 시 포트 자동 변경
+    document.querySelectorAll('input[name="encryption"]').forEach(function(radio) {
+        radio.addEventListener('change', function() {
+            var portInput = document.getElementById('port');
+            switch (this.value) {
+                case 'NONE': portInput.value = 25; break;
+                case 'SSL':  portInput.value = 465; break;
+                case 'TLS':  portInput.value = 587; break;
+            }
+        });
+    });
+
+    // 폼 제출 시 버튼 비활성화 (중복 클릭 방지)
+    document.getElementById('smtpForm').addEventListener('submit', function() {
+        var btn = document.getElementById('submitBtn');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner"></span> 발송 중...';
+    });
+
+    // 페이지 로드 시 초기 상태 설정
+    document.addEventListener('DOMContentLoaded', function() {
+        toggleAuthFields();
+    });
+</script>
+
+</body>
+</html>
